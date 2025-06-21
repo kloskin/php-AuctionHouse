@@ -1,0 +1,19 @@
+# Konfiguracja i środowisko
+.env
+
+# Systemowe i IDE
+*.log
+*.bak
+*.zip
+.idea/
+.vscode/
+*.code-workspace
+
+# Cache
+cache/
+tmp/
+sessions/
+
+# Node / Composer (jeśli kiedyś się pojawią)
+node_modules/
+vendor/
