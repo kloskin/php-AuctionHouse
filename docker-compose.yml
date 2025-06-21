@@ -9,6 +9,7 @@ services:
       - "8000:80"
     volumes:
       - .:/var/www/html
+    working_dir: /var/www/html/public
     depends_on:
       - mongo
       - redis
@@ -20,7 +21,7 @@ services:
       - "27017:27017"
     volumes:
       - mongodata:/data/db
-    command: [--auth]   # Jeśli chcesz uwierzytelnianie - opcjonalne
+    #command: [--auth] 
 
   redis:
     image: redis:7

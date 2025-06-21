@@ -1,0 +1,3 @@
+<?php
+
+// Auction logic here

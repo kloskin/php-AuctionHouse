@@ -14,6 +14,6 @@ cache/
 tmp/
 sessions/
 
-# Node / Composer (jeśli kiedyś się pojawią)
+# Node / Composer
 node_modules/
 vendor/

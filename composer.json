@@ -1,0 +1,17 @@
+{
+    "name": "kloskin/auctionhouse-php",
+    "autoload": {
+        "psr-4": {
+            "Kloskin\\AuctionhousePhp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "kloskin",
+            "email": "fkloska1@gmail.com"
+        }
+    ],
+    "require-dev": {
+        "mongodb/mongodb": "^2.1"
+    }
+}

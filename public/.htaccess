@@ -1,4 +1,12 @@
+# public/.htaccess
+Options +FollowSymLinks -MultiViews
 RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
+RewriteBase /
+
+# Jeśli żądany plik lub katalog istnieje – służ go normalnie
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# W przeciwnym razie – przekaż wszystko do index.php
+RewriteRule ^ index.php [L,QSA]
