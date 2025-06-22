@@ -1,26 +1,6 @@
 <?php
 
 $error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']         ?? '');
-    $email    = trim($_POST['email']            ?? '');
-    $password = $_POST['password']          ?? '';
-    $confirm  = $_POST['confirm-password'] ?? '';
-
-    if (!$username || !$email || !$password || !$confirm) {
-        $error = 'Wszystkie pola są wymagane.';
-    } elseif ($password !== $confirm) {
-        $error = 'Hasła nie są zgodne.';
-    } else {
-        $userId = register_user($username, $email, $password);
-        if ($userId === false) {
-            $error = 'Rejestracja nie powiodła się (być może email jest już zajęty).';
-        } else {
-            header('Location: /login');
-            exit;
-        }
-    }
-}
 
 $pageTitle = 'Utwórz konto';
 ?>

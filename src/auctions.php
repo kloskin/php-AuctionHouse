@@ -51,6 +51,54 @@ function create_auction(array $data): string {
 
     return (string) $insertedId;
 }
+/**
+ * Aktualizuje dane aukcji.
+ *
+ * @param string $auctionId   ID aukcji jako string
+ * @param array  $data        Tablica z kluczami:
+ *                            - title (string)
+ *                            - description (string)
+ *                            - starting_price (float)
+ *                            - ends_at (ISO datetime string)
+ *                            - images (tablica nazw plików) — może być pusta
+ * @return bool               true jeśli zaktualizowano, false w przeciwnym razie
+ */
+function update_auction(string $auctionId, array $data): bool {
+    $manager = getMongoManager();
+    $bulk    = new MongoDB\Driver\BulkWrite;
+
+    // Zbuduj sekcję $set
+    $set = [
+        'title'          => $data['title'],
+        'description'    => $data['description'],
+        'starting_price' => (float)$data['starting_price'],
+        'ends_at'        => new MongoDB\BSON\UTCDateTime((new DateTime($data['ends_at'], new DateTimeZone('UTC')))->getTimestamp() * 1000),
+    ];
+    // Jeżeli przekazano obrazy (może być pusty array)
+    if (isset($data['images'])) {
+        $set['images'] = $data['images'];
+    }
+
+    $bulk->update(
+        ['_id' => new MongoDB\BSON\ObjectId($auctionId)],
+        ['$set' => $set]
+    );
+    $result = $manager->executeBulkWrite('auction.auctions', $bulk);
+    return $result->getModifiedCount() > 0;
+}
+
+/**
+ * Usuń aukcję po ID.
+ *
+ * @param string $auctionId
+ * @return void
+ */
+function delete_auction(string $auctionId): void {
+    $manager = getMongoManager();
+    $bulk    = new MongoDB\Driver\BulkWrite;
+    $bulk->delete(['_id' => new MongoDB\BSON\ObjectId($auctionId)]);
+    $manager->executeBulkWrite('auction.auctions', $bulk);
+}
 function get_auctions_by_status(string $status, array $options = []): array {
     $now = new MongoDB\BSON\UTCDateTime();
     if ($status === 'open') {
@@ -67,4 +115,16 @@ function get_auctions_by_status(string $status, array $options = []): array {
 function get_user_auctions(string $ownerId, array $options = []): array {
     $filter = ['owner_id' => new MongoDB\BSON\ObjectId($ownerId)];
     return get_auctions($filter, $options);
+}
+function get_ending_soon_auctions(int $limit = 4): array {
+    $manager = getMongoManager();
+    // Filtrujemy tylko aukcje 'active'
+    $filter  = ['status' => 'active'];
+    // Sortujemy po ends_at rosnąco, dając pierwsze te, co kończą się najwcześniej
+    $options = [
+        'sort'  => ['ends_at' => 1],
+        'limit' => $limit,
+    ];
+    $query   = new MongoDB\Driver\Query($filter, $options);
+    return $manager->executeQuery('auction.auctions', $query)->toArray();
 }

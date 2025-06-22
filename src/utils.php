@@ -48,3 +48,24 @@ function generate_token(int $length = 32): string {
 function get_valid_roles(): array {
     return ['admin', 'moderator', 'user'];
 }
+
+/**
+ * Formatuje czas UTCDateTime ze MongoDB (lub string) do strefy Europe/Warsaw
+ *
+ * @param MongoDB\BSON\UTCDateTime|string $utc
+ * @return string  Sformatowana data np. "24.06.2025 21:30"
+ */
+function fmtDate($utc): string {
+    // Zamiana na DateTime (w UTC)
+    if ($utc instanceof MongoDB\BSON\UTCDateTime) {
+        $dt = $utc->toDateTime();
+    } else {
+        $dt = new DateTime($utc, new DateTimeZone('UTC'));
+    }
+
+    // Przełącz na lokalną strefę
+    $dt->setTimezone(new DateTimeZone('Europe/Warsaw'));
+
+    // Zwróć formatowany string
+    return $dt->format('d.m.Y H:i');
+}

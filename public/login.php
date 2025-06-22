@@ -1,23 +1,6 @@
 <?php
 
 $error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email    = trim($_POST['email']   ?? '');
-    $password = $_POST['password'] ?? '';
-
-    if (!$email || !$password) {
-        $error = 'Proszę podać email i hasło.';
-    } else {
-        $token = login_user($email, $password);
-        if ($token === false) {
-            $error = 'Nieprawidłowy email lub hasło.';
-        } else {
-            header('Location: /home');
-            exit;
-        }
-    }
-}
-
 $pageTitle = 'Zaloguj się';
 ?>
 <main class="container mb-5">

@@ -178,7 +178,10 @@ function require_role($roles) {
     $user = current_user();
     if (!$user || !user_has_role($user, $roles)) {
         http_response_code(403);
-        echo 'Brak dostępu';
+        $pageTitle = 'Brak dostępu';
+        include __DIR__ . '/../templates/header.php';
+        echo '<div class="container text-center"><h1>Brak dostępu</h1></div>';
+        include __DIR__ . '/../templates/footer.php';
         exit;
     }
 }

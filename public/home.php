@@ -1,11 +1,3 @@
-<?php
-// public/index.php
-
-// Ustaw tytuł strony, który zostanie użyty w <title>
-$pageTitle = 'Strona główna - Aukcje24';
-
-?>
-
 <section class="bg-light text-center py-5">
   <div class="container">
     <h1 class="display-5 mb-3">Witamy na Aukcje24!</h1>
@@ -14,11 +6,11 @@ $pageTitle = 'Strona główna - Aukcje24';
 </section>
 
 <main class="container mb-5">
-  <h1 class="mb-4">Proponowane Aukcje</h1>
+  <h1 class="mb-4">Kończące się aukcje</h1>
   <div class="row g-4">
     <?php
     // Pobieramy aukcje
-    $auctions = get_auctions();
+    $auctions = get_ending_soon_auctions(4);
 
     foreach ($auctions as $a):
       // 1) Pobieramy nazwę pliku z bazy (pierwszy element tablicy images)
@@ -73,6 +65,11 @@ $pageTitle = 'Strona główna - Aukcje24';
         </div>
       </div>
     <?php endforeach; ?>
+  </div>
+  <div class="text-center mt-5">
+    <a href="/auctions" class="btn btn-primary btn-lg">
+      Pokaż wszystkie aukcje
+    </a>
   </div>
 </main>
 

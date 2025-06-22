@@ -31,9 +31,10 @@ $user = current_user();
             <li class="nav-item"><a class="nav-link text-white" href="/home">Aukcje</a></li>
             <li class="nav-item"><a class="nav-link text-white" href="/create_auction">Dodaj aukcję</a></li>
             <li class="nav-item"><a class="nav-link text-white" href="/my-auctions">Moje aukcje</a></li>
+            <li class="nav-item"><a class="nav-link text-white" href="/my-bids">Moje oferty</a></li>
             <?php if (user_has_role($user, 'admin')): ?>
               <!-- Admin -->
-              <li class="nav-item"><a class="nav-link text-white" href="/admin-panel">Panel administratora</a></li>
+              <li class="nav-item"><a class="nav-link text-white" href="/admin">Panel administratora</a></li>
             <?php elseif (user_has_role($user, 'moderator')): ?>
               <!-- Moderator -->
               <li class="nav-item"><a class="nav-link text-white" href="/moderator-panel">Panel moderatora</a></li>

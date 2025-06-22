@@ -96,3 +96,16 @@ function get_bid_history(string $auctionId, int $limit = 10): array {
 
     return $bids;
 }
+/**
+ * Zwraca tablicę wszystkich ofert złożonych przez użytkownika.
+ *
+ * @param string $userId
+ * @return MongoDB\Model\BSONDocument[]|array
+ */
+function get_user_bids(string $userId): array {
+    $manager = getMongoManager();
+    $filter  = ['user_id' => new MongoDB\BSON\ObjectId($userId)];
+    $options = ['sort' => ['created_at' => -1]];
+    $query   = new MongoDB\Driver\Query($filter, $options);
+    return $manager->executeQuery('auction.bids', $query)->toArray();
+}
