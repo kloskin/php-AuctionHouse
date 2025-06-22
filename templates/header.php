@@ -34,7 +34,7 @@ $user = current_user();
               <?php if (user_has_role($user, 'admin')): ?>
                 <li class="nav-item"><a class="nav-link" href="/admin">Panel administratora</a></li>
               <?php elseif (user_has_role($user, 'moderator')): ?>
-                <li class="nav-item"><a class="nav-link" href="/moderator-panel">Panel moderatora</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/auctions">Panel moderatora</a></li>
               <?php endif; ?>
               <li class="nav-item"><a class="nav-link" href="/profile">Konto</a></li>
               <li class="nav-item"><a class="nav-link" href="/logout">Wyloguj</a></li>

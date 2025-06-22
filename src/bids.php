@@ -2,66 +2,70 @@
 require_once __DIR__ . '/db.php';
 
 /**
- * Złóż ofertę w aukcji.
+ * Składa ofertę w aukcji.
  *
- * @param string $auctionId Identyfikator ObjectId aukcji jako ciąg hex
- * @param string $userId    Identyfikator ObjectId użytkownika jako ciąg hex
+ * @param string $auctionId Id aukcji jako hex string
+ * @param string $userId    Id użytkownika jako hex string
  * @param float  $amount    Kwota oferty
- * @return bool True w przypadku powodzenia
+ * @return bool True jeśli oferta przyjęta, false jeśli za niska
  */
 function place_bid(string $auctionId, string $userId, float $amount): bool {
     $manager = getMongoManager();
-    $bulk    = new MongoDB\Driver\BulkWrite;
+    $auction = get_auction_by_id($auctionId);
+    $current = $auction->current_price ?? $auction->starting_price;
 
-    // 1. Wstaw dokument oferty
-    $bidDoc = [
+    if ($amount <= $current) {
+        return false;
+    }
+
+    // 1) Zapis oferty w MongoDB
+    $bulk   = new MongoDB\Driver\BulkWrite;
+    $bidId  = $bulk->insert([
         'auction_id' => new MongoDB\BSON\ObjectId($auctionId),
         'user_id'    => new MongoDB\BSON\ObjectId($userId),
         'amount'     => $amount,
         'created_at' => new MongoDB\BSON\UTCDateTime()
-    ];
-    $bidId = $bulk->insert($bidDoc);
+    ]);
     $manager->executeBulkWrite('auction.bids', $bulk);
 
-    // 2. Zaktualizuj bieżącą cenę aukcji
-    $bulkUpdate = new MongoDB\Driver\BulkWrite;
-    $bulkUpdate->update(
+    // 2) Aktualizacja current_price
+    $bulk2  = new MongoDB\Driver\BulkWrite;
+    $bulk2->update(
         ['_id' => new MongoDB\BSON\ObjectId($auctionId)],
-        ['$set' => ['current_price' => $amount]],
-        ['multi' => false, 'upsert' => false]
+        ['$set' => ['current_price' => $amount]]
     );
-    $manager->executeBulkWrite('auction.auctions', $bulkUpdate);
+    $manager->executeBulkWrite('auction.auctions', $bulk2);
 
-    // 3. Dodaj do posortowanego zbioru Redis dla rankingu na żywo
-    $redis   = getRedisClient();
-    $redisKey = "auction:{$auctionId}:bids";
-    $redis->zAdd($redisKey, $amount, (string) $bidId);
+    // 3) Redis: ranking i czyszczenie cache
+    $redis = getRedisClient();
+    $redis->zAdd("auction:{$auctionId}:bids", $amount, (string)$bidId);
     $redis->del("auction:{$auctionId}:detail");
     $redis->del("auctions:ending_soon:4");
+
     return true;
 }
 
 /**
  * Pobierz najwyższą ofertę dla aukcji.
  *
- * @param string $auctionId Identyfikator ObjectId aukcji jako ciąg hex
- * @return object|null Dokument oferty lub null jeśli brak
+ * @param string $auctionId
+ * @return stdClass|null
  */
 function get_highest_bid(string $auctionId) {
-    $redis    = getRedisClient();
-    $redisKey = "auction:{$auctionId}:bids";
-
-    // Najwyższa oferta (najwyższy wynik)
-    $entries = $redis->zRevRange($redisKey, 0, 0, ['WITHSCORES' => true]);
+    $redis = getRedisClient();
+    $key   = "auction:{$auctionId}:bids";
+    $entries = $redis->zRevRange($key, 0, 0, ['WITHSCORES' => true]);
     if (empty($entries)) {
         return null;
     }
     $bidId = key($entries);
+    // walidacja: 24 hex
+    if (!preg_match('/^[0-9a-fA-F]{24}$/', $bidId)) {
+        return null;
+    }
 
-    // Pobierz ofertę z MongoDB
     $manager = getMongoManager();
-    $filter  = ['_id' => new MongoDB\BSON\ObjectId($bidId)];
-    $query   = new MongoDB\Driver\Query($filter);
+    $query   = new MongoDB\Driver\Query(['_id' => new MongoDB\BSON\ObjectId($bidId)]);
     $result  = $manager->executeQuery('auction.bids', $query)->toArray();
     return $result[0] ?? null;
 }
@@ -69,44 +73,49 @@ function get_highest_bid(string $auctionId) {
 /**
  * Pobierz historię ofert dla aukcji (od najnowszych).
  *
- * @param string $auctionId Identyfikator ObjectId aukcji jako ciąg hex
- * @param int    $limit     Liczba ofert do zwrócenia
- * @return array Lista dokumentów ofert
+ * @param string $auctionId
+ * @param int    $limit     Ile ofert pobrać
+ * @return array
  */
 function get_bid_history(string $auctionId, int $limit = 10): array {
-    $redis    = getRedisClient();
-    $redisKey = "auction:{$auctionId}:bids";
+    $redis = getRedisClient();
+    $key   = "auction:{$auctionId}:bids";
 
-    // Identyfikatory najnowszych ofert
-    $bidIds = $redis->zRevRange($redisKey, 0, $limit - 1);
+    // Pobierz identyfikatory
+    $bidIds = $redis->zRevRange($key, 0, $limit - 1);
     if (empty($bidIds)) {
         return [];
     }
 
-    // Konwersja na tablicę ObjectId
-    $objectIds = array_map(fn($id) => new MongoDB\BSON\ObjectId($id), $bidIds);
+    // Filtracja i konwersja
+    $objectIds = [];
+    foreach ($bidIds as $id) {
+        if (is_string($id) && preg_match('/^[0-9a-fA-F]{24}$/', $id)) {
+            $objectIds[] = new MongoDB\BSON\ObjectId($id);
+        }
+    }
+    if (empty($objectIds)) {
+        return [];
+    }
 
-    // Pobierz z MongoDB
+    // Pobranie z Mongo i sortowanie
     $manager = getMongoManager();
     $filter  = ['_id' => ['$in' => $objectIds]];
-    $query   = new MongoDB\Driver\Query($filter);
-    $bids    = $manager->executeQuery('auction.bids', $query)->toArray();
-
-    // Sortuj malejąco po created_at
-    usort($bids, fn($a, $b) => $b->created_at->toDateTime() <=> $a->created_at->toDateTime());
-
-    return $bids;
+    $query   = new MongoDB\Driver\Query($filter, ['sort' => ['created_at' => -1]]);
+    return $manager->executeQuery('auction.bids', $query)->toArray();
 }
+
 /**
- * Zwraca tablicę wszystkich ofert złożonych przez użytkownika.
- *
- * @param string $userId
- * @return MongoDB\Model\BSONDocument[]|array
+ * Pobierz wszystkie oferty złożone przez użytkownika.
  */
 function get_user_bids(string $userId): array {
+    if (!preg_match('/^[0-9a-fA-F]{24}$/', $userId)) {
+        return [];
+    }
     $manager = getMongoManager();
-    $filter  = ['user_id' => new MongoDB\BSON\ObjectId($userId)];
-    $options = ['sort' => ['created_at' => -1]];
-    $query   = new MongoDB\Driver\Query($filter, $options);
+    $query   = new MongoDB\Driver\Query(
+        ['user_id' => new MongoDB\BSON\ObjectId($userId)],
+        ['sort'    => ['created_at' => -1]]
+    );
     return $manager->executeQuery('auction.bids', $query)->toArray();
 }

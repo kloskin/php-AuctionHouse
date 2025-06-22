@@ -51,7 +51,7 @@ switch ($uri) {
     include __DIR__ . '/../templates/footer.php';
     break;
   case 'admin/auctions':
-    require_role('admin');
+    require_role(['admin', 'moderator']);
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($_POST['action']) && $_POST['action']==='delete' && !empty($_POST['auction_id'])) {
@@ -329,32 +329,41 @@ switch ($uri) {
       exit;
     }
     if (preg_match('#^auction/([0-9a-fA-F]{24})$#', $uri, $m)) {
-      $auctionId = $m[1];
-      $_GET['id'] = $auctionId;
+    $auctionId = $m[1];
+    $_GET['id'] = $auctionId;
 
-      // 1) Obsługa POST (przed include header.php)
-      if ($_SERVER['REQUEST_METHOD'] === 'POST' && current_user()) {
-        try {
-          place_bid(
-            $auctionId,
-            (string)current_user()->_id,
-            floatval($_POST['bid_amount'] ?? 0)
-          );
-          header("Location: /auction/{$auctionId}");
-          exit;
-        } catch (\Exception $e) {
-          // przekaż komunikat błędu do widoku
-          $bidError = $e->getMessage();
-        }
+    // 1) Obsługa POST (przed include header.php)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user = current_user()) {
+          try {
+              $bidAmount = floatval($_POST['bid_amount'] ?? 0);
+              // rzuci InvalidArgumentException jeśli oferta za niska
+              $bidId = place_bid($auctionId, (string)$user->_id, $bidAmount);
+
+              // 2) Zaktualizuj ranking w Redis
+              $redis = getRedisClient();
+              $redis->zAdd("auction:{$auctionId}:bids", $bidAmount, $bidId);
+
+              // 3) Wyczyść cache szczegółów aukcji
+              $redis->del("auction:{$auctionId}:detail");
+
+              header("Location: /auction/{$auctionId}");
+              exit;
+          } catch (\InvalidArgumentException $e) {
+              // wiadomość walidacji (np. za niska oferta)
+              $bidError = $e->getMessage();
+          } catch (\Exception $e) {
+              // inne błędy
+              $bidError = 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.';
+          }
       }
 
-      // 2) Teraz, po ewentualnym redirect/exit, render page
+      // 2) Renderowanie widoku
       $pageTitle = 'Szczegóły aukcji';
       include __DIR__ . '/../templates/header.php';
-      include __DIR__ . '/auction.php';       // tutaj korzystasz z $bidError, jeśli jest
+      include __DIR__ . '/auction.php';   // w nim możesz sprawdzić isset($bidError)
       include __DIR__ . '/../templates/footer.php';
       break;
-    }
+  }
 
 
     // 404

@@ -202,3 +202,9 @@ function get_daily_view_stats(string $date = null): array {
     }
     return $stats;
 }
+function normalizeCurrentPrice(stdClass $a): stdClass {
+    if (empty($a->current_price) || $a->current_price < $a->starting_price) {
+        $a->current_price = $a->starting_price;
+    }
+    return $a;
+}

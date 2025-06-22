@@ -19,8 +19,6 @@ if (!$auction) {
     return;
 }
 
-
-
 // 1) Zlicznik globalny – Sorted Set
 $redis->zincrby('auction:views', 1, $auctionId);
 

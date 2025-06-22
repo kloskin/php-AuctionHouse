@@ -32,6 +32,7 @@
     $redis = getRedisClient();
     $auctions = get_ending_soon_auctions_cached(4, $redis);
     $topViewed = get_top_viewed_auctions(4);
+    
     foreach ($auctions as $a):
       $fileName = (!empty($a->images) && is_array($a->images) && $a->images[0])
         ? $a->images[0]
