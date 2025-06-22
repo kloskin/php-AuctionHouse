@@ -1,5 +1,4 @@
 <?php
-// Pobieramy aktualnie zalogowanego użytkownika
 $user = current_user();
 ?>
 <!DOCTYPE html>
@@ -15,35 +14,33 @@ $user = current_user();
 </head>
 <body>
   <header class="bg-dark text-white p-3 mb-4">
-    <div class="container d-flex justify-content-between align-items-center">
-      <div class="h4 m-0">
-        <a href="/home" class="text-white text-decoration-none">Aukcje24</a>
-      </div>
-      <nav class="d-none d-md-block">
-        <ul class="nav">
-          <?php if (!$user): ?>
-            <!-- Gość -->
-            <li class="nav-item"><a class="nav-link text-white" href="/home">Aukcje</a></li>
-            <li class="nav-item"><a class="nav-link text-white" href="/login">Zaloguj się</a></li>
-            <li class="nav-item"><a class="nav-link text-white" href="/register">Utwórz konto</a></li>
-          <?php else: ?>
-            <!-- Wszyscy zalogowani -->
-            <li class="nav-item"><a class="nav-link text-white" href="/home">Aukcje</a></li>
-            <li class="nav-item"><a class="nav-link text-white" href="/create_auction">Dodaj aukcję</a></li>
-            <li class="nav-item"><a class="nav-link text-white" href="/my-auctions">Moje aukcje</a></li>
-            <li class="nav-item"><a class="nav-link text-white" href="/my-bids">Moje oferty</a></li>
-            <?php if (user_has_role($user, 'admin')): ?>
-              <!-- Admin -->
-              <li class="nav-item"><a class="nav-link text-white" href="/admin">Panel administratora</a></li>
-            <?php elseif (user_has_role($user, 'moderator')): ?>
-              <!-- Moderator -->
-              <li class="nav-item"><a class="nav-link text-white" href="/moderator-panel">Panel moderatora</a></li>
+    <nav class="navbar navbar-expand-md  navbar-dark">
+      <div class="container">
+        <a class="navbar-brand h4 mb-0 text-white" href="/home">Aukcje24</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Przełącz nawigację">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav ms-auto mb-2 mb-md-0">
+            <?php if (!$user): ?>
+              <li class="nav-item"><a class="nav-link" href="/auctions">Wszystkie Aukcje</a></li>
+              <li class="nav-item"><a class="nav-link" href="/login">Zaloguj się</a></li>
+              <li class="nav-item"><a class="nav-link" href="/register">Utwórz konto</a></li>
+            <?php else: ?>
+              <li class="nav-item"><a class="nav-link" href="/auctions">Wszystkie Aukcje</a></li>
+              <li class="nav-item"><a class="nav-link" href="/create_auction">Dodaj aukcję</a></li>
+              <li class="nav-item"><a class="nav-link" href="/my-auctions">Moje aukcje</a></li>
+              <li class="nav-item"><a class="nav-link" href="/my-bids">Moje oferty</a></li>
+              <?php if (user_has_role($user, 'admin')): ?>
+                <li class="nav-item"><a class="nav-link" href="/admin">Panel administratora</a></li>
+              <?php elseif (user_has_role($user, 'moderator')): ?>
+                <li class="nav-item"><a class="nav-link" href="/moderator-panel">Panel moderatora</a></li>
+              <?php endif; ?>
+              <li class="nav-item"><a class="nav-link" href="/profile">Konto</a></li>
+              <li class="nav-item"><a class="nav-link" href="/logout">Wyloguj</a></li>
             <?php endif; ?>
-
-            <li class="nav-item"><a class="nav-link text-white" href="/profile">Konto</a></li>
-            <li class="nav-item"><a class="nav-link text-white" href="/logout">Wyloguj</a></li>
-          <?php endif; ?>
-        </ul>
-      </nav>
-    </div>
+          </ul>
+        </div>
+      </div>
+    </nav>
   </header>

@@ -43,9 +43,9 @@ function renderAuctions(array $list, bool $isEnded = false): void {
         $imgFile = (!empty($a->images) && is_array($a->images))
             ? $a->images[0]
             : 'placeholder.png';
-        $assetPath = __DIR__ . '/assets/' . $imgFile;
+        $assetPath = __DIR__ . '/assets/img_uploads/' . $imgFile;
         $imgSrc = file_exists($assetPath)
-            ? '/assets/' . rawurlencode($imgFile)
+            ? '/assets/img_uploads/' . rawurlencode($imgFile)
             : '/img/placeholder.png';
 
         // Cena
@@ -68,7 +68,7 @@ function renderAuctions(array $list, bool $isEnded = false): void {
         echo '        </a>';
         echo '      </h5>';
         echo '      <p class="card-text mb-2">';
-        echo '<strong>Cena:</strong> '.number_format($currPrice,2,',',' ').' zł';
+        echo '<strong>Aktualna cena:</strong> '.number_format($currPrice,2,',',' ').' zł';
         echo '      </p>';
         echo '      <p class="card-text mt-auto">';
         echo "<small class=\"text-muted\">{$dateLabel}</small>";

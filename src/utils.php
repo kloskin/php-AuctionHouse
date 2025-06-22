@@ -56,16 +56,61 @@ function get_valid_roles(): array {
  * @return string  Sformatowana data np. "24.06.2025 21:30"
  */
 function fmtDate($utc): string {
-    // Zamiana na DateTime (w UTC)
+    // 1) Bezpośredni obiekt UTCDateTime
     if ($utc instanceof MongoDB\BSON\UTCDateTime) {
         $dt = $utc->toDateTime();
-    } else {
-        $dt = new DateTime($utc, new DateTimeZone('UTC'));
+        $dt->setTimezone(new DateTimeZone('Europe/Warsaw'));
+        return $dt->format('d.m.Y H:i');
     }
 
-    // Przełącz na lokalną strefę
-    $dt->setTimezone(new DateTimeZone('Europe/Warsaw'));
+    // 2) Rozszerzony JSON z MongoDB (stdClass {"$date": ...})
+    if (is_object($utc) && property_exists($utc, '$date')) {
+        $raw = $utc->{'$date'};
+        // JSON kształtu {"$date": {"$numberLong": "1234567890"}}
+        if (is_object($raw) && property_exists($raw, '$numberLong')) {
+            $millis = (int)$raw->{'$numberLong'};
+        } else {
+            $millis = is_string($raw) || is_int($raw) ? (int)$raw : 0;
+        }
+        $seconds = floor($millis / 1000);
+        $dt = new DateTime('@' . $seconds);
+        $dt->setTimezone(new DateTimeZone('Europe/Warsaw'));
+        return $dt->format('d.m.Y H:i');
+    }
 
-    // Zwróć formatowany string
-    return $dt->format('d.m.Y H:i');
+    // 3) ciąg znaków (np. ISO-date string)
+    if (is_string($utc)) {
+        try {
+            $dt = new DateTime($utc, new DateTimeZone('UTC'));
+            $dt->setTimezone(new DateTimeZone('Europe/Warsaw'));
+            return $dt->format('d.m.Y H:i');
+        } catch (Exception $e) {
+            return '';
+        }
+    }
+
+    // 4) liczba sekund lub timestamp
+    if (is_int($utc) || is_numeric($utc)) {
+        $dt = new DateTime('@' . (int)$utc);
+        $dt->setTimezone(new DateTimeZone('Europe/Warsaw'));
+        return $dt->format('d.m.Y H:i');
+    }
+
+    // Inne przypadki
+    return '';
+}
+/**
+ * Zwraca stringowe ID niezależnie od formatu:
+ * - MongoDB\BSON\ObjectId
+ * - stdClass { '$oid': '...' }
+ * - plain string
+ */
+function oid(string|object $id): string {
+    if ($id instanceof MongoDB\BSON\ObjectId) {
+        return (string)$id;
+    }
+    if (is_object($id) && property_exists($id, '$oid')) {
+        return $id->{'$oid'};
+    }
+    return (string)$id;
 }

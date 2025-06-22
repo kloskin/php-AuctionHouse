@@ -72,5 +72,7 @@ function update_auction_status(string $auctionId, string $status): bool {
  */
 function delete_auction_admin(string $auctionId): bool {
     // po prostu delegujemy do istniejącej delete_auction
-    return delete_auction($auctionId);
+    delete_auction($auctionId);
+    // jeżeli doszliśmy tu bez wyjątku, zwracamy true
+    return true;
 }

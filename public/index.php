@@ -171,11 +171,18 @@ switch ($uri) {
             // obsługa pliku — tylko jeśli rzeczywiście wgrano poprawnie
             $images = [];
             if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                $uploadDir  = __DIR__ . '/assets/';
-                $ext        = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-                $fileName   = uniqid('img_') . '.' . $ext;
+                $uploadDir = __DIR__ . '/assets/img_uploads//';
+                $ext       = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+                $fileName  = uniqid('img_') . '.' . $ext;
+
+                if (!is_dir($uploadDir) || !is_writable($uploadDir)) {
+                    throw new \RuntimeException("Folder uploadu nie istnieje lub nie jest zapisywalny: {$uploadDir}");
+                }
+
                 if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $fileName)) {
                     $images[] = $fileName;
+                } else {
+                    $error = 'Wystąpił błąd podczas zapisywania pliku.';
                 }
             }
             
@@ -288,7 +295,7 @@ switch ($uri) {
             // opcjonalny upload
             $images = $auction->images; // zachowaj obecne
             if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-              $dir    = __DIR__ . '/assets/';
+              $dir    = __DIR__ . '/assets/img_uploads/';
               $ext    = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
               $file   = uniqid('img_') . '.' . $ext;
               if (move_uploaded_file($_FILES['image']['tmp_name'], $dir . $file)) {

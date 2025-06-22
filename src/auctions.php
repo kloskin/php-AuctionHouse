@@ -49,6 +49,10 @@ function create_auction(array $data): string {
     $insertedId = $bulk->insert($data);
     $manager->executeBulkWrite('auction.auctions', $bulk);
 
+    // czyszczenie cache
+    $redis = getRedisClient();
+    $redis->del("auctions:ending_soon:4");
+
     return (string) $insertedId;
 }
 /**
@@ -84,7 +88,14 @@ function update_auction(string $auctionId, array $data): bool {
         ['$set' => $set]
     );
     $result = $manager->executeBulkWrite('auction.auctions', $bulk);
-    return $result->getModifiedCount() > 0;
+    $modified = $result->getModifiedCount() > 0;
+
+    if ($modified) {
+        $redis = getRedisClient();
+        $redis->del("auction:{$auctionId}:detail");
+        $redis->del("auctions:ending_soon:4");
+    }
+    return $modified;
 }
 
 /**
@@ -96,8 +107,16 @@ function update_auction(string $auctionId, array $data): bool {
 function delete_auction(string $auctionId): void {
     $manager = getMongoManager();
     $bulk    = new MongoDB\Driver\BulkWrite;
+
     $bulk->delete(['_id' => new MongoDB\BSON\ObjectId($auctionId)]);
-    $manager->executeBulkWrite('auction.auctions', $bulk);
+    $result = $manager->executeBulkWrite('auction.auctions', $bulk);
+    $deleted = $result->getDeletedCount() > 0;
+
+    if ($deleted) {
+        $redis = getRedisClient();
+        $redis->del("auction:{$auctionId}:detail");
+        $redis->del("auctions:ending_soon:4");
+    }
 }
 function get_auctions_by_status(string $status, array $options = []): array {
     $now = new MongoDB\BSON\UTCDateTime();
@@ -127,4 +146,59 @@ function get_ending_soon_auctions(int $limit = 4): array {
     ];
     $query   = new MongoDB\Driver\Query($filter, $options);
     return $manager->executeQuery('auction.auctions', $query)->toArray();
+}
+/**
+ * Zwraca szczegóły aukcji, najpierw próbując z cache, inaczej z Mongo.
+ */
+function get_auction_cached(string $auctionId, Redis $redis): stdClass {
+    $cacheKey = "auction:{$auctionId}:detail";
+    $json = $redis->get($cacheKey);
+    if ($json !== false) {
+        // udało się z cache
+        return json_decode($json);
+    }
+
+    // inaczej pobierz z MongoDB
+    $auction = get_auction_by_id($auctionId);
+    if ($auction) {
+        // zapisz w Redis na 60 sekund
+        $redis->setex($cacheKey, 60, json_encode($auction));
+    }
+    return $auction;
+}
+function get_ending_soon_auctions_cached(int $limit, Redis $redis): array {
+    $cacheKey = "auctions:ending_soon:{$limit}";
+    $json = $redis->get($cacheKey);
+    if ($json !== false) {
+        // z cache: dekoduj do tablicy stdClass
+        return json_decode($json);
+    }
+
+    $list = get_ending_soon_auctions($limit);
+    // cache na 30 sekund
+    $redis->setex($cacheKey, 30, json_encode($list));
+    return $list;
+}
+/**
+ * Zwraca TOP K aukcji po liczbie wyświetleń (globalnie).
+ * @param int $k
+ * @return array  Tablica [auctionId => score]
+ */
+function get_top_viewed_auctions(int $k = 4): array {
+    $redis = getRedisClient();
+    // Pobieramy k elementów o najwyższym score
+    $entries = $redis->zRevRange('auction:views', 0, $k - 1, ['WITHSCORES' => true]);
+    // Rzutujemy na int
+    return array_map('intval', $entries);
+}
+function get_daily_view_stats(string $date = null): array {
+    $redis = getRedisClient();
+    $d = $date ?: date('Y-m-d');
+    // HGETALL zwraca wszystkie pola i wartości jako flat array
+    $flat = $redis->hGetAll("stats:{$d}");
+    $stats = [];
+    for ($i = 0; $i < count($flat); $i += 2) {
+        $stats[$flat[$i]] = (int)$flat[$i + 1];
+    }
+    return $stats;
 }

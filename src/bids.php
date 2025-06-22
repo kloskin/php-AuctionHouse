@@ -36,7 +36,8 @@ function place_bid(string $auctionId, string $userId, float $amount): bool {
     $redis   = getRedisClient();
     $redisKey = "auction:{$auctionId}:bids";
     $redis->zAdd($redisKey, $amount, (string) $bidId);
-
+    $redis->del("auction:{$auctionId}:detail");
+    $redis->del("auctions:ending_soon:4");
     return true;
 }
 

@@ -14,9 +14,9 @@
         $imgFile = (!empty($auc->images) && is_array($auc->images))
           ? $auc->images[0]
           : 'placeholder.png';
-        $assetPath = __DIR__ . '/assets/' . $imgFile;
+        $assetPath = __DIR__ . '/assets/img_uploads/' . $imgFile;
         $imgSrc = file_exists($assetPath)
-          ? '/assets/' . rawurlencode($imgFile)
+          ? '/assets/img_uploads/' . rawurlencode($imgFile)
           : '/img/placeholder.png';
       ?>
         <div class="col">

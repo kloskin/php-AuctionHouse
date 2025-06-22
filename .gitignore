@@ -17,3 +17,7 @@ sessions/
 # Node / Composer
 node_modules/
 vendor/
+
+# obrazki i pliki statyczne
+public/assets/img_uploads/*
+!public/assets/img_uploads/.gitkeep

@@ -12,13 +12,22 @@ if (!$auctionId) {
 
 // 2) Obsługa formularza licytacji
 $error = '';
-
-// 3) Pobierz dane aukcji i wszystkie oferty
-$auction = get_auction_by_id($auctionId);
+$redis   = getRedisClient();
+$auction = get_auction_cached($auctionId, $redis);
 if (!$auction) {
     echo '<div class="alert alert-danger">Nie znaleziono aukcji.</div>';
     return;
 }
+
+
+
+// 1) Zlicznik globalny – Sorted Set
+$redis->zincrby('auction:views', 1, $auctionId);
+
+// 2) Statystyki dzienne – Hash pod kluczem stats:YYYY-MM-DD
+$todayKey = 'stats:' . date('Y-m-d');
+$redis->hincrby($todayKey, $auctionId, 1);
+
 $bids = get_bid_history($auctionId);
 
 ?>
@@ -26,17 +35,27 @@ $bids = get_bid_history($auctionId);
 <main class="container mb-5">
   <!-- Szczegóły aukcji -->
   <div class="row mb-4">
-    <div class="col-md-6">
+    <div class="col-md-6 d-flex justify-content-center align-items-center">
       <?php if (!empty($auction->images) && is_array($auction->images)): ?>
+      <div class="row g-2 justify-content-center w-100">
         <?php foreach ($auction->images as $img): ?>
-          <img src="/assets/<?= htmlspecialchars($img) ?>"
-               class="img-fluid mb-2"
-               alt="Zdjęcie aukcji">
+        <div class="col-12 col-sm-10 col-md-12">
+          <div class="ratio ratio-1x1 rounded bg-light overflow-hidden">
+          <img src="/assets/img_uploads/<?= htmlspecialchars($img) ?>"
+             class="img-fluid object-fit-cover w-100 h-100"
+             style="object-fit: cover; object-position: center;"
+             alt="Zdjęcie aukcji">
+          </div>
+        </div>
         <?php endforeach; ?>
+      </div>
       <?php else: ?>
+      <div class="ratio ratio-1x1 rounded bg-light overflow-hidden" style="max-width: 400px; width: 100%;">
         <img src="/img/placeholder.png"
-             class="img-fluid mb-2"
-             alt="Brak zdjęć">
+           class="img-fluid object-fit-cover w-100 h-100"
+           style="object-fit: cover; object-position: center;"
+           alt="Brak zdjęć">
+      </div>
       <?php endif; ?>
     </div>
     <div class="col-md-6">
