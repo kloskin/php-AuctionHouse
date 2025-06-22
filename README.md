@@ -39,26 +39,24 @@ Użytkownicy mogą tworzyć i zarządzać aukcjami, składać oferty oraz śledz
 1. Sklonuj repozytorium:
 
    ```bash
-   git clone https://github.com/twoje-konto/auctionhouse-php.git
+   git clone https://github.com/kloskin/php-AuctionHouse
    cd auctionhouse-php
    ```
 
-2. Skonfiguruj zmienne środowiskowe w `.env` (URI MongoDB, Redis, itp.).
-
-3. Uruchom Docker Compose:
+2. Uruchom Docker Compose:
 
    ```bash
    docker-compose up -d --build
    ```
 
-4. Zainicjalizuj bazy:
+3. Zainicjalizuj bazy:
 
    ```bash
    docker exec -it auctionhouse-php-php-1 php /var/www/html/db/mongo-init.php
    docker exec -it auctionhouse-php-php-1 php /var/www/html/db/redis-init.php
    ```
 
-5. Wejdź na `http://localhost:8000`.
+4. Wejdź na `http://localhost:8000`.
 
 ---
 
@@ -85,34 +83,10 @@ Użytkownicy mogą tworzyć i zarządzać aukcjami, składać oferty oraz śledz
 ├── templates/            # Widoki wspólne
 │   ├── header.php
 │   └── footer.php
-├── .env
+│
 ├── docker-compose.yml
 └── README.md
 ```
-
----
-
-## Konfiguracja
-
-W pliku `.env` zdefiniuj co najmniej:
-
-```
-MONGO_URI=mongodb://mongo:27017
-REDIS_HOST=redis
-REDIS_PORT=6379
-APP_ENV=development
-```
-
-### PHP ini
-
-Jeśli chcesz zapisywać sesje w Redis:
-
-```ini
-session.save_handler = redis
-session.save_path    = "tcp://redis:6379"
-```
-
----
 
 ## Sposób działania
 
