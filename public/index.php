@@ -171,7 +171,7 @@ switch ($uri) {
             // obsługa pliku — tylko jeśli rzeczywiście wgrano poprawnie
             $images = [];
             if (!empty($_FILES['image']['name']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                $uploadDir = __DIR__ . '/assets/img_uploads//';
+                $uploadDir = __DIR__ . '/assets/img_uploads/';
                 $ext       = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
                 $fileName  = uniqid('img_') . '.' . $ext;
 

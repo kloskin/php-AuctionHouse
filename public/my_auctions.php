@@ -24,7 +24,11 @@
          : new DateTime($a->ends_at);
   ?>
     <div class="mb-4 border p-4 rounded shadow-sm bg-white">
-      <h2 class="h5"><?= htmlspecialchars($a->title) ?></h2>
+      <h2 class="h5">
+        <a href="/auction/<?= (string)$a->_id ?>">
+          <?= htmlspecialchars($a->title) ?>
+        </a>
+      </h2>
 
       <p>
         <strong>Cena wywoławcza:</strong>

@@ -1,7 +1,6 @@
 <?php
 
 $error = '';
-$pageTitle = 'Zaloguj się';
 ?>
 <main class="container mb-5">
   <h1 class="mb-4">Zaloguj się</h1>
